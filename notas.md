@@ -94,3 +94,5 @@ Si tu pulso es tembloroso y microscópico (alfa bajo), giras la perilla tan desp
 Iteraciones (Tus intentos o num_iter): Es el número de "clics" o empujoncitos que tu paciencia te permite darle a la perilla antes de darte por vencido, sentarte en el sillón y dejar la radio con la configuración que haya quedado.
 
 Básicamente, tu programa es un robot ciego que usa las derivadas matemáticas como "oídos" para girar las perillas (w y b) con golpecitos de fuerza controlada (alfa) hasta que la canción suene perfecta (el costo J sea el mínimo posible).
+
+La diferencia es pequena con los datos usados, pero en sentido estricto son dos cosas distintas: la curva es el mapa del paisaje con la antena quieta, y los puntos son el camino que realmente se recorrio con las dos perillas moviendose a la vez.

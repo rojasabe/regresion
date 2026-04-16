@@ -207,25 +207,9 @@ En cada iteraci\'on se guardan los valores de $w$, $b$ y $J$ en tres vectores de
 
 \subsection{Estabilidad num\'erica y elecci\'on de $\alpha$}
 
-Durante el desarrollo se observ\'o que con datasets de rango grande (por ejemplo $x \in [0,100]$) el valor por defecto $\alpha = 0.01$ produc\'ia \texttt{NaN} en pocas iteraciones. La causa es directa: como $\partial J/\partial w$ incluye $x^{(i)}$, cuando los $x$ son grandes los pasos se vuelven gigantes y el algoritmo diverge. La condici\'on te\'orica de convergencia es $\alpha < 2/\mathbb{E}[x^2]$ \cite{hastie2009elements}. La tabla~\ref{tab:alpha} resume los valores seguros para los datasets considerados.
+Un detalle importante al implementar gradiente descendiente manualmente es que el tama\~no de los pasos depende no solo de $\alpha$ sino tambi\'en de la magnitud de los $x^{(i)}$, porque $\partial J/\partial w$ incluye el factor $x^{(i)}$ en cada t\'ermino. Si los valores de entrada son grandes, los gradientes se agrandan proporcionalmente y el algoritmo puede divergir incluso con una tasa que parece razonable. La condici\'on te\'orica de convergencia es $\alpha < 2/\mathbb{E}[x^2]$ \cite{hastie2009elements}.
 
-\begin{table}[h]
-  \centering
-  \caption{Tasa de aprendizaje m\'axima segura por dataset.}
-  \label{tab:alpha}
-  \begin{tabular}{@{}ccc@{}}
-    \toprule
-    \textbf{Dataset} & \textbf{Rango de} $x$ & \textbf{$\alpha$ m\'aximo} \\
-    \midrule
-    3--7 puntos manuales  & $[1,\;7]$   & $\approx 0.08$   \\
-    20 puntos aleatorios  & $[0,\;20]$  & $\approx 0.015$  \\
-    50 puntos aleatorios  & $[0,\;50]$  & $\approx 0.0024$ \\
-    100 puntos aleatorios & $[0,\;100]$ & $\approx 0.0006$ \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-Por eso la versi\'on final usa datasets peque\~nos con $x \in [1,7]$, donde $\alpha = 0.01$ e iteraciones $= 100$ convergen sin problemas. En la analog\'ia: si la mano que gira la perilla es muy brusca ($\alpha$ alto) para ondas de se\~nal grandes, la estaci\'on se pasa siempre de largo.
+Los datasets utilizados en este trabajo tienen $x \in [1,7]$, para los cuales el valor m\'aximo seguro es aproximadamente $\alpha \approx 0.08$. Todos los experimentos usan $\alpha \leq 0.01$, con margen suficiente. En la analog\'ia: si la mano que gira la perilla es muy brusca ($\alpha$ alto), la estaci\'on se pasa siempre de largo.
 
 \subsection{Versi\'on Gtk nativa (\texttt{lineal\_regresion\_guinativa.jl})}
 
@@ -374,13 +358,13 @@ La analog\'ia de la radio sostiene todo el recorrido: $w$ es la perilla, $b$ la 
 A.~Ng, \textit{Machine Learning Specialization}. Coursera / DeepLearning.AI, 2022. [En l\'inea]. Disponible en: \url{https://www.coursera.org/specializations/machine-learning-introduction}
 
 \bibitem{bezanson2017julia}
-J.~Bezanson, A.~Edelman, S.~Karpinski, y V.~B.~Shah, ``Julia: A fresh approach to numerical computing,'' \textit{SIAM Review}, vol.~59, no.~1, pp.~65--98, 2017.
+Wikipedia, ``Julia (lenguaje de programaci\'on),'' \textit{Wikipedia, La enciclopedia libre}, 2024. [En l\'inea]. Disponible en: \url{https://es.wikipedia.org/wiki/Julia_(lenguaje_de_programaci%C3%B3n)}
 
 \bibitem{hastie2009elements}
-T.~Hastie, R.~Tibshirani, y J.~Friedman, \textit{The Elements of Statistical Learning}, 2nd~ed. New York, NY, USA: Springer, 2009.
+Wikipedia, ``Descenso del gradiente,'' \textit{Wikipedia, La enciclopedia libre}, 2024. [En l\'inea]. Disponible en: \url{https://es.wikipedia.org/wiki/Descenso_del_gradiente}
 
 \bibitem{goodfellow2016deep}
-I.~Goodfellow, Y.~Bengio, y A.~Courville, \textit{Deep Learning}. Cambridge, MA, USA: MIT Press, 2016.
+Wikipedia, ``Aprendizaje profundo,'' \textit{Wikipedia, La enciclopedia libre}, 2024. [En l\'inea]. Disponible en: \url{https://es.wikipedia.org/wiki/Aprendizaje_profundo}
 
 \bibitem{plutojl}
 F.~van~der~Plas \textit{et al.}, \textit{Pluto.jl: simple reactive notebooks for Julia}, 2024. [En l\'inea]. Disponible en: \url{https://plutojl.org}
