@@ -213,6 +213,8 @@ Los datasets utilizados en este trabajo tienen $x \in [1,7]$, para los cuales el
 
 \subsection{Versi\'on Gtk nativa (\texttt{lineal\_regresion\_guinativa.jl})}
 
+\textit{Este programa fue escrito por Porfirio Sebasti\'an Rojas Ch\'avez.}
+
 La primera implementaci\'on construye una ventana nativa con la biblioteca \texttt{Gtk.jl}. El archivo est\'a organizado de abajo hacia arriba en orden de abstracci\'on creciente: primero los datos constantes, luego \texttt{modelo}, \texttt{funcion\_costo}, \texttt{dj\_dw}, \texttt{dj\_db}, despu\'es \texttt{gradiente\_descendiente}, luego \texttt{graficar}, y finalmente \texttt{lanzar\_aplicacion} que es la GUI. Cada funci\'on solo usa funciones definidas antes.
 
 La interfaz tiene cuatro campos de par\'ametros (\texttt{alfa}, iteraciones, paso de muestreo de rectas, m\'aximo de rectas en la gr\'afica de evoluci\'on), cuatro botones con datasets predefinidos de 3, 5, 6 y 7 puntos, una secci\'on de entrada manual (dos campos de texto con valores separados por coma) y un panel de resultados. Al presionar cualquier bot\'on se ejecuta el ciclo: leer par\'ametros, llamar a \texttt{gradiente\_descendiente}, calcular el costo final, mostrarlo en el panel y llamar a \texttt{graficar}.
@@ -229,6 +231,8 @@ Las gr\'aficas se muestran en el navegador usando el backend \texttt{plotlyjs()}
 Es importante no confundir los paneles 3 y 4. El panel 4 muestra c\'omo el costo cambia \emph{en el tiempo} (el proceso); el panel 3 muestra la \emph{forma geom\'etrica} de la funci\'on de costo (el espacio). El panel 3 es la raz\'on visual por la que el algoritmo funciona: la superficie tiene forma de taz\'on convexo, sin m\'inimos locales, y bajar siempre en direcci\'on del gradiente necesariamente lleva al fondo.
 
 \subsection{Versi\'on Pluto reactiva (\texttt{regresion\_pluto.jl})}
+
+\textit{Este cuaderno fue generado con inteligencia artificial (Claude Sonnet~4.6, Anthropic).}
 
 La segunda implementaci\'on es un cuaderno de \texttt{Pluto.jl} \cite{plutojl} que reimplementa las mismas funciones matem\'aticas, pero reemplaza toda la GUI por widgets \texttt{@bind}:
 

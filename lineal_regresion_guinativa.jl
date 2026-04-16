@@ -1,4 +1,5 @@
 # regresion_lineal.jl -- gradiente descendiente a mano, sin librerias de ML
+# Autor: Porfirio Rojas
 
 using Gtk
 using Plots
@@ -27,7 +28,6 @@ function funcion_costo(w, b, x_datos, y_datos)
     suma = sum((modelo(w, b, x_datos[i]) - y_datos[i])^2 for i in 1:m)   # suma de (prediccion - real)^2 para cada punto
     return suma / (2.0 * m)   # el 1/2 es un truco: al derivar el 2 del exponente se cancela y queda mas limpio
 end
-
 
 function dj_dw(w, b, x_datos, y_datos)
     m = length(x_datos)
@@ -75,7 +75,7 @@ function gradiente_descendiente(x_datos, y_datos, alfa, num_iter)
         end
     end
 
-    println("  optimo encontrado: f*(x) = $(round(w,digits=4))x + $(round(b,digits=4))")
+    println("optimo encontrado: f*(x) = $(round(w,digits=4))x + $(round(b,digits=4))")
     println("="^55 * "\n")
 
     return w, b, hist_costo, hist_w, hist_b

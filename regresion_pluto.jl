@@ -1,5 +1,6 @@
 ### A Pluto.jl notebook ###
 # v0.20.24
+# Generado por IA: Claude Sonnet 4.6 (Anthropic)
 
 using Markdown
 using InteractiveUtils

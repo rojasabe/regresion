@@ -75,7 +75,7 @@ function gradiente_descendiente(x_datos, y_datos, alfa, num_iter)
         end
     end
 
-    println("  optimo encontrado: f*(x) = $(round(w,digits=4))x + $(round(b,digits=4))")
+    println("optimo encontrado: f*(x) = $(round(w,digits=4))x + $(round(b,digits=4))")
     println("="^55 * "\n")
 
     return w, b, hist_costo, hist_w, hist_b
