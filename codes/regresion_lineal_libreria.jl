@@ -1,404 +1,240 @@
 # regresion_lineal_libreria.jl
-# ============================================================
-# regresión lineal usando GLM.jl — solución analítica (OLS)
-# mismos datos y estructura de GUI que regresion_lineal.jl,
-# pero sin implementar nada desde cero.
-#
-# modelo:   Y ~ X  →  ŷ = b + w·x
-# método:   OLS — ecuaciones normales: θ = (XᵀX)⁻¹Xᵀy
-# ventaja:  solución exacta, sin hiper-parámetros (α, iters)
-#
-# librerías clave:
-#   GLM        — ajuste del modelo lineal
-#   DataFrames — tabla de datos requerida por GLM
-#   Statistics — media/std para el histograma
-#   Plots      — visualización (backend GR)
-#   Gtk        — interfaz gráfica (mismo framework)
-# ============================================================
+# regresion lineal con GLM.jl usando error cuadratico minimo (OLS)
+# Autor: Porfirio Rojas
 
 using Gtk
 using Plots
 using GLM
 using DataFrames
-using Statistics
-gr()
+plotlyjs()   # backend con zoom y hover en el navegador, igual que en la version a mano
 
-# ============================================================
-# constantes: mismos datasets que regresion_lineal.jl
-# y ≈ 2x + ruido gaussiano
-# ============================================================
-const X_20  = sort(rand(20)  * 20.0)
-const Y_20  = 2.0 .* X_20  .+ randn(20)  * 2.0
+# los mismos datasets que la version a mano, pero solo 3 y 5 puntos
+const X_3 = [1.0, 2.0, 3.0]
+const Y_3 = [2.0, 4.0, 5.5]
 
-const X_50  = sort(rand(50)  * 50.0)
-const Y_50  = 2.0 .* X_50  .+ randn(50)  * 4.0
-
-const X_100 = sort(rand(100) * 100.0)
-const Y_100 = 2.0 .* X_100 .+ randn(100) * 6.0
+const X_5 = [1.0, 2.0, 3.0, 4.0, 5.0]
+const Y_5 = [1.5, 3.0, 4.0, 5.5, 7.0]
 
 
-# ============================================================
 # ajuste del modelo con GLM
-#
-# lm(@formula(Y ~ X), df) internamente resuelve:
-#   θ = (XᵀX)⁻¹ Xᵀy
-# que es exactamente la misma solución a la que converge el
-# gradiente descendiente de regresion_lineal.jl después de
-# miles de iteraciones — pero en una sola operación matricial.
-# ============================================================
-function ajustar_modelo(x_datos, y_datos)
-    df = DataFrame(X = x_datos, Y = y_datos)
-    return lm(@formula(Y ~ X), df)
+# lm resuelve internamente las ecuaciones normales y nos entrega
+# el w y b que minimizan el error cuadratico, sin iterar nada
+function ajustar(x_datos, y_datos)
+    df = DataFrame(x = x_datos, y = y_datos)
+    modelo = lm(@formula(y ~ x), df)
+    coefs = coef(modelo)
+    b = coefs[1]   # intercepto
+    w = coefs[2]   # pendiente
+    return w, b
 end
 
 
-# ============================================================
-# extrae parámetros y métricas del modelo ajustado
-#   coef(m)[1] → b  (intercepto / sesgo)
-#   coef(m)[2] → w  (pendiente  / peso)
-#   r2(m)      → R² (coeficiente de determinación, 0–1)
-# ============================================================
-function extraer_parametros(m)
-    coefs  = coef(m)
-    b      = coefs[1]
-    w      = coefs[2]
-    r2_val = r2(m)
-    return w, b, r2_val
+# error cuadratico medio, el mismo J(w,b) que minimizamos a mano
+function error_cuadratico(w, b, x_datos, y_datos)
+    m = length(x_datos)
+    suma = sum((w * x_datos[i] + b - y_datos[i])^2 for i in 1:m)
+    return suma / (2.0 * m)
 end
 
 
-# ============================================================
-# imprime resultados en consola — mismo estilo que la versión
-# manual, más la tabla estadística completa que entrega GLM
-# (coeficientes, error estándar, estadístico t, p-valor)
-# ============================================================
-function imprimir_resultados(m, x_datos, y_datos, titulo)
-    w, b, r2_val = extraer_parametros(m)
-    n     = length(x_datos)
-    y_hat = predict(m)
-    costo = sum((y_hat .- y_datos).^2) / (2 * n)   # j(w,b) igual que la versión manual
-
-    println("\n" * "="^62)
-    println("  GLM — $titulo")
-    println("="^62)
-    println("  datos               : $n puntos")
-    println("  método              : OLS (ecuaciones normales)")
-    println("="^62)
-    println("  w  (pendiente)      = $(round(w,      digits=6))")
-    println("  b  (intercepto)     = $(round(b,      digits=6))")
-    println("  R²                  = $(round(r2_val, digits=6))")
-    println("  j(w,b) = (1/2n)Σe² = $(round(costo,  digits=8))")
-    println("  ecuación            : f(x) = $(round(w, digits=4))x + $(round(b, digits=4))")
-    println("─"^62)
-    println("  tabla estadística completa (GLM):")
-    println(m)
-    println("="^62 * "\n")
-
-    return costo
+# GLM llega al optimo en un solo paso, asi que para ver como seria el
+# "camino de aprendizaje" simulamos gradiente descendiente aparte.
+# esto nos sirve solo para las graficas de evolucion, parabola y convergencia
+function simular_aprendizaje(x_datos, y_datos, alfa, num_iter)
+    w = 0.0
+    b = 0.0
+    m = length(x_datos)
+    hist_w = Float64[]
+    hist_b = Float64[]
+    hist_costo = Float64[]
+    for iter in 1:num_iter
+        grad_w = sum((w * x_datos[i] + b - y_datos[i]) * x_datos[i] for i in 1:m) / m
+        grad_b = sum(w * x_datos[i] + b - y_datos[i] for i in 1:m) / m
+        w = w - alfa * grad_w
+        b = b - alfa * grad_b
+        push!(hist_w, w)
+        push!(hist_b, b)
+        push!(hist_costo, error_cuadratico(w, b, x_datos, y_datos))
+    end
+    return hist_w, hist_b, hist_costo
 end
 
 
-# ============================================================
-# graficación: 3 subplots análogos a los de la versión manual
-#
-#   versión manual          →  versión librería
-#   ─────────────────────────────────────────────────────────
-#   datos + abanico GD     →  datos + línea + banda IC 95%
-#   convergencia j(w,b)    →  residuos vs valores ajustados
-#   parábola j(w) + camino →  histograma de residuos
-#
-# la banda IC 95% y el análisis de residuos son diagnósticos
-# estándar que GLM nos entrega gratis.
-# ============================================================
-function graficar(x_datos, y_datos, m, titulo_base)
-    w, b, r2_val = extraer_parametros(m)
-    y_hat    = predict(m)
-    residuos = residuals(m)
+# grafica: las mismas 4 vistas que la version a mano
+# la recta optima viene de GLM, el camino viene de la simulacion
+function graficar(x_datos, y_datos, w_opt, b_opt, hist_w, hist_b, hist_costo, titulo)
+    n       = length(hist_w)
+    x_rango = collect(range(minimum(x_datos), maximum(x_datos), length=200))
+    y_final = w_opt .* x_rango .+ b_opt
 
-    # línea ajustada + intervalo de confianza 95% en 200 puntos
-    x_min   = minimum(x_datos)
-    x_max   = maximum(x_datos)
-    x_linea = collect(range(x_min, x_max, length=200))
-    df_pred = DataFrame(X = x_linea)
-    pred_ci = predict(m, df_pred; interval=:confidence, level=0.95)
-    y_linea  = pred_ci.prediction
-    banda_lo = y_linea .- pred_ci.lower    # ancho hacia abajo
-    banda_hi = pred_ci.upper .- y_linea   # ancho hacia arriba
-
-    # ── subplot 1: dispersión + línea ajustada + banda IC 95% ──
-    # equivale al subplot de regresión de la versión manual,
-    # pero la incertidumbre se muestra como banda estadística
-    # en lugar de un abanico de iteraciones intermedias
-    g1 = scatter(
-        x_datos, y_datos,
-        label          = "datos",
-        xlabel         = "x",
-        ylabel         = "y",
-        title          = "$titulo_base\nR² = $(round(r2_val, digits=4))",
-        titlefontsize  = 10,
-        color          = :steelblue,
-        markersize     = 5,
-        legend         = :topleft,
-        legendfontsize = 8,
-        top_margin     = 8Plots.mm,
-        bottom_margin  = 6Plots.mm,
-        left_margin    = 6Plots.mm
+    # subplot 1: puntos + recta optima de GLM
+    p1 = scatter(x_datos, y_datos,
+        label      = "datos ($(length(x_datos)) puntos)",
+        xlabel     = "x",
+        ylabel     = "y",
+        title      = titulo,
+        markersize = 7,
+        color      = :steelblue,
+        legend     = :topleft
     )
-    plot!(g1, x_linea, y_linea,
-        ribbon    = (banda_lo, banda_hi),
-        fillalpha = 0.2,
-        fillcolor = :red,
-        color     = :red,
+    plot!(p1, x_rango, y_final,
+        label     = "GLM: f*(x) = $(round(w_opt, digits=4))x + $(round(b_opt, digits=4))",
+        color     = :firebrick,
+        linewidth = 2.5
+    )
+
+    # subplot 2: evolucion de las rectas mientras "aprendia"
+    paso_recta = 10
+    max_rectas = 8
+    candidatos = collect(paso_recta:paso_recta:n)
+    isempty(candidatos) && (candidatos = [n])
+    if length(candidatos) > max_rectas
+        paso2      = ceil(Int, length(candidatos) / max_rectas)
+        candidatos = candidatos[1:paso2:end]
+    end
+
+    p2 = scatter(x_datos, y_datos,
+        label      = "datos ($(length(x_datos)) puntos)",
+        xlabel     = "x",
+        ylabel     = "y",
+        title      = "evolucion de f(x) = wx + b",
+        markersize = 7,
+        color      = :steelblue,
+        legend     = :outertopright
+    )
+    paleta = cgrad(:blues, length(candidatos) + 2)
+    for (k, idx) in enumerate(candidatos)
+        wk = hist_w[idx]
+        bk = hist_b[idx]
+        yk = wk .* x_rango .+ bk
+        plot!(p2, x_rango, yk,
+            label     = "t=$idx",
+            color     = paleta[k / (length(candidatos) + 1)],
+            linewidth = 1.5,
+            alpha     = 0.85
+        )
+    end
+    plot!(p2, x_rango, y_final,
+        label     = "optima (GLM)  w*=$(round(w_opt,digits=3))  b*=$(round(b_opt,digits=3))",
+        color     = :firebrick,
         linewidth = 2.5,
-        label     = "f(x)=$(round(w,digits=4))x+$(round(b,digits=4))  [IC 95%]"
+        linestyle = :dash
     )
 
-    # ── subplot 2: residuos vs valores ajustados ──
-    # equivale a la gráfica de convergencia: permite ver si
-    # el modelo captura bien la estructura o quedan patrones
-    g2 = scatter(
-        y_hat, residuos,
-        xlabel         = "valores ajustados (ŷ)",
-        ylabel         = "residuos  (y − ŷ)",
-        title          = "residuos vs ajustados",
-        titlefontsize  = 10,
-        color          = :darkorange,
-        markersize     = 5,
-        label          = "residuos",
-        legendfontsize = 8,
-        top_margin     = 8Plots.mm,
-        bottom_margin  = 6Plots.mm,
-        left_margin    = 6Plots.mm
+    # subplot 3: parabola J(w) con b fijado en b_opt y el camino naranja
+    w_ini  = hist_w[1]
+    margen = max(abs(w_opt - w_ini) * 1.5, abs(w_opt) * 0.5, 1.0)
+    w_eje  = collect(range(min(w_ini, w_opt) - margen * 0.3,
+                           max(w_ini, w_opt) + margen * 0.3, length=400))
+    j_eje  = [error_cuadratico(wv, b_opt, x_datos, y_datos) for wv in w_eje]
+
+    p3 = plot(w_eje, j_eje,
+        label     = "",
+        xlabel    = "w",
+        ylabel    = "j(w, b*)",
+        title     = "superficie de costo j(w)  --  w* = $(round(w_opt, digits=4))",
+        color     = :mediumpurple,
+        linewidth = 2
     )
-    hline!(g2, [0.0],
-        color     = :black,
-        linewidth = 1.5,
-        linestyle = :dash,
-        label     = "e = 0"
+    paso_cam = max(1, n ÷ 60)
+    idx_cam  = collect(1:paso_cam:n)
+    j_cam    = [error_cuadratico(hist_w[i], hist_b[i], x_datos, y_datos) for i in idx_cam]
+    scatter!(p3, hist_w[idx_cam], j_cam,
+        label      = "",
+        color      = :darkorange,
+        markersize = 4,
+        alpha      = 0.75
+    )
+    scatter!(p3, [w_opt], [error_cuadratico(w_opt, b_opt, x_datos, y_datos)],
+        label       = "w* = $(round(w_opt, digits=4))",
+        color       = :green,
+        markersize  = 11,
+        markershape = :diamond
     )
 
-    # ── subplot 3: histograma de residuos ──
-    # equivale a la parábola de costo: muestra la distribución
-    # de errores; idealmente centrada en 0 y simétrica
-    media_res = mean(residuos)
-    g3 = histogram(
-        residuos,
-        xlabel         = "residuo  (y − ŷ)",
-        ylabel         = "frecuencia",
-        title          = "distribución de residuos",
-        titlefontsize  = 10,
-        color          = :purple,
-        alpha          = 0.7,
-        label          = "residuos",
-        legendfontsize = 8,
-        top_margin     = 8Plots.mm,
-        bottom_margin  = 6Plots.mm,
-        left_margin    = 6Plots.mm,
-        right_margin   = 4Plots.mm
+    # subplot 4: convergencia del costo sobre las iteraciones simuladas
+    j_final = hist_costo[end]
+    p4 = plot(1:n, hist_costo,
+        label     = "",
+        xlabel    = "iteracion",
+        ylabel    = "j(w,b)",
+        title     = "convergencia del costo  --  j* = $(round(j_final, digits=6))",
+        color     = :darkorange,
+        linewidth = 2
     )
-    vline!(g3, [media_res],
-        color     = :red,
-        linewidth = 2,
-        linestyle = :dash,
-        label     = "media=$(round(media_res, digits=3))"
+    scatter!(p4, [n], [j_final],
+        label       = "j* = $(round(j_final, digits=6))",
+        color       = :green,
+        markersize  = 9,
+        markershape = :diamond
     )
 
-    figura = plot(g1, g2, g3, layout=(1, 3), size=(1300, 460))
+    figura = plot(p1, p2, p3, p4,
+        layout        = (2, 2),
+        size          = (1500, 950),
+        left_margin   = 8Plots.mm,
+        right_margin  = 8Plots.mm,
+        top_margin    = 5Plots.mm,
+        bottom_margin = 5Plots.mm
+    )
     display(figura)
 end
 
 
-# ============================================================
-# interfaz gráfica — misma estructura que regresion_lineal.jl
-# se eliminan los campos α e iteraciones porque OLS no los
-# necesita: la solución es analítica y siempre exacta.
-# ============================================================
 function lanzar_aplicacion()
 
-    ventana   = GtkWindow("regresión lineal — GLM (OLS)", 540, 480)
-    caja_raiz = GtkBox(:v)
-    set_gtk_property!(caja_raiz, :spacing,       8)
-    set_gtk_property!(caja_raiz, :margin_top,    12)
-    set_gtk_property!(caja_raiz, :margin_bottom, 12)
-    set_gtk_property!(caja_raiz, :margin_start,  12)
-    set_gtk_property!(caja_raiz, :margin_end,    12)
+    ventana = GtkWindow("regresion lineal -- GLM (error cuadratico minimo)", 520, 340)
+    caja    = GtkBox(:v)
+    set_gtk_property!(caja, :spacing,       10)
+    set_gtk_property!(caja, :margin_top,    12)
+    set_gtk_property!(caja, :margin_bottom, 12)
+    set_gtk_property!(caja, :margin_start,  12)
+    set_gtk_property!(caja, :margin_end,    12)
 
-    # --- título ---
-    etiqueta_titulo = GtkLabel(
-        "<b>regresión lineal con GLM.jl — OLS</b>\n" *
-        "modelo: Y ~ X  →  ŷ = b + w·x\n" *
-        "método: ecuaciones normales  θ = (XᵀX)⁻¹Xᵀy\n" *
-        "<i>no requiere learning rate ni iteraciones</i>"
+    titulo_lbl = GtkLabel(
+        "<b>regresion lineal con GLM.jl</b>\n" *
+        "metodo: minimos cuadrados ordinarios (OLS)\n" *
+        "modelo: f(x) = wx + b"
     )
-    set_gtk_property!(etiqueta_titulo, :use_markup, true)
-    set_gtk_property!(etiqueta_titulo, :justify, 2)
+    set_gtk_property!(titulo_lbl, :use_markup, true)
+    set_gtk_property!(titulo_lbl, :justify,    2)
 
-    # --------------------------------------------------------
-    # sección: datos predefinidos (mismos 3 datasets)
-    # --------------------------------------------------------
-    marco_pred = GtkFrame("  datos predefinidos — solo presiona el botón  ")
-    caja_pred  = GtkBox(:v)
-    set_gtk_property!(caja_pred, :spacing,       6)
-    set_gtk_property!(caja_pred, :margin_top,    6)
-    set_gtk_property!(caja_pred, :margin_bottom, 6)
-    set_gtk_property!(caja_pred, :margin_start,  8)
-    set_gtk_property!(caja_pred, :margin_end,    8)
+    boton_3 = GtkButton("3 puntos : (1,2.0), (2,4.0), (3,5.5)")
+    boton_5 = GtkButton("5 puntos : (1,1.5), (2,3.0), (3,4.0), (4,5.5), (5,7.0)")
 
-    boton_20  = GtkButton("ajustar con  20 puntos  (X_20, Y_20 — constantes)")
-    boton_50  = GtkButton("ajustar con  50 puntos  (X_50, Y_50 — constantes)")
-    boton_100 = GtkButton("ajustar con 100 puntos  (X_100, Y_100 — constantes)")
-    push!(caja_pred, boton_20)
-    push!(caja_pred, boton_50)
-    push!(caja_pred, boton_100)
-    push!(marco_pred, caja_pred)
+    label_res = GtkLabel("presiona un boton para ajustar el modelo...")
+    set_gtk_property!(label_res, :margin_top, 10)
+    set_gtk_property!(label_res, :xalign,     0.0f0)
 
-    # --------------------------------------------------------
-    # sección: entrada manual de 3 puntos (igual que el manual)
-    # --------------------------------------------------------
-    marco_manual = GtkFrame("  entrada manual — 3 puntos  ")
-    caja_manual  = GtkBox(:v)
-    set_gtk_property!(caja_manual, :spacing,       6)
-    set_gtk_property!(caja_manual, :margin_top,    6)
-    set_gtk_property!(caja_manual, :margin_bottom, 6)
-    set_gtk_property!(caja_manual, :margin_start,  8)
-    set_gtk_property!(caja_manual, :margin_end,    8)
-
-    instruccion = GtkLabel("ingresa cada punto como   x , y")
-    set_gtk_property!(instruccion, :xalign, 0.0f0)
-
-    fila_p1 = GtkBox(:h); label_p1 = GtkLabel("punto 1  (x, y) : "); entry_p1 = GtkEntry()
-    fila_p2 = GtkBox(:h); label_p2 = GtkLabel("punto 2  (x, y) : "); entry_p2 = GtkEntry()
-    fila_p3 = GtkBox(:h); label_p3 = GtkLabel("punto 3  (x, y) : "); entry_p3 = GtkEntry()
-
-    for (fila, lbl, entry, default) in [
-            (fila_p1, label_p1, entry_p1, "1, 2"),
-            (fila_p2, label_p2, entry_p2, "2, 4"),
-            (fila_p3, label_p3, entry_p3, "3, 5.8")]
-        set_gtk_property!(entry, :text, default)
-        set_gtk_property!(entry, :width_chars, 12)
-        push!(fila, lbl)
-        push!(fila, entry)
+    for widget in [titulo_lbl, boton_3, boton_5, label_res]
+        push!(caja, widget)
     end
+    push!(ventana, caja)
 
-    boton_manual = GtkButton("ajustar con los 3 puntos manuales")
-
-    push!(caja_manual, instruccion)
-    push!(caja_manual, fila_p1)
-    push!(caja_manual, fila_p2)
-    push!(caja_manual, fila_p3)
-    push!(caja_manual, boton_manual)
-    push!(marco_manual, caja_manual)
-
-    # --------------------------------------------------------
-    # sección: panel de resultados
-    # --------------------------------------------------------
-    marco_resultado = GtkFrame("  resultados del ajuste  ")
-    label_resultado = GtkLabel("presiona un botón para ajustar el modelo...")
-    set_gtk_property!(label_resultado, :margin_top,    10)
-    set_gtk_property!(label_resultado, :margin_bottom, 10)
-    set_gtk_property!(label_resultado, :margin_start,  10)
-    set_gtk_property!(label_resultado, :margin_end,    10)
-    set_gtk_property!(label_resultado, :xalign, 0.0f0)
-    push!(marco_resultado, label_resultado)
-
-    # --------------------------------------------------------
-    # ensamblamos la ventana
-    # --------------------------------------------------------
-    push!(caja_raiz, etiqueta_titulo)
-    push!(caja_raiz, marco_pred)
-    push!(caja_raiz, marco_manual)
-    push!(caja_raiz, marco_resultado)
-    push!(ventana, caja_raiz)
-
-    # ============================================================
-    # funciones auxiliares de la GUI
-    # ============================================================
-
-    function parsear_punto(entry)
-        texto  = get_gtk_property(entry, :text, String)
-        partes = split(texto, ',')
-        x = parse(Float64, strip(partes[1]))
-        y = parse(Float64, strip(partes[2]))
-        return x, y
-    end
-
-    function mostrar_resultado(w, b, r2_val, costo, n)
+    # todo el flujo junto: GLM da el optimo, la simulacion da el camino
+    function ejecutar(X, Y, titulo)
+        w_opt, b_opt = ajustar(X, Y)
+        hist_w, hist_b, hist_costo = simular_aprendizaje(X, Y, 0.05, 100)
+        j = error_cuadratico(w_opt, b_opt, X, Y)
         texto = (
-            "ajuste completado con $n puntos\n" *
-            "  método               :  OLS (GLM.jl — ecuaciones normales)\n" *
-            "─────────────────────────────────────\n" *
-            "  w  (pendiente)       =  $(round(w,      digits=6))\n" *
-            "  b  (intercepto)      =  $(round(b,      digits=6))\n" *
-            "  R²                   =  $(round(r2_val, digits=6))\n" *
-            "  j(w,b) = (1/2n)Σe²  =  $(round(costo,  digits=8))\n" *
-            "─────────────────────────────────────\n" *
-            "  ecuación ajustada    :  f(x) = $(round(w,digits=4))x + $(round(b,digits=4))"
+            "ajuste con $(length(X)) puntos completado\n" *
+            "  w (pendiente)     = $(round(w_opt, digits=6))\n" *
+            "  b (intercepto)    = $(round(b_opt, digits=6))\n" *
+            "  error J(w,b)      = $(round(j,     digits=8))\n" *
+            "  ecuacion ajustada : f(x) = $(round(w_opt, digits=4))x + $(round(b_opt, digits=4))"
         )
-        set_gtk_property!(label_resultado, :label, texto)
+        set_gtk_property!(label_res, :label, texto)
+        graficar(X, Y, w_opt, b_opt, hist_w, hist_b, hist_costo, titulo)
     end
 
-    # ============================================================
-    # callbacks de los botones — cada uno llama a ajustar_modelo
-    # en lugar de gradiente_descendiente
-    # ============================================================
-
-    signal_connect(boton_20, "clicked") do _
-        try
-            m     = ajustar_modelo(X_20, Y_20)
-            costo = imprimir_resultados(m, X_20, Y_20, "20 puntos")
-            w, b, r2_val = extraer_parametros(m)
-            mostrar_resultado(w, b, r2_val, costo, 20)
-            graficar(X_20, Y_20, m, "regresión lineal (GLM) — 20 puntos")
-        catch err
-            set_gtk_property!(label_resultado, :label, "error: $(string(err))")
-        end
+    signal_connect(boton_3, "clicked") do _
+        ejecutar(X_3, Y_3, "regresion lineal (GLM) -- 3 puntos")
     end
 
-    signal_connect(boton_50, "clicked") do _
-        try
-            m     = ajustar_modelo(X_50, Y_50)
-            costo = imprimir_resultados(m, X_50, Y_50, "50 puntos")
-            w, b, r2_val = extraer_parametros(m)
-            mostrar_resultado(w, b, r2_val, costo, 50)
-            graficar(X_50, Y_50, m, "regresión lineal (GLM) — 50 puntos")
-        catch err
-            set_gtk_property!(label_resultado, :label, "error: $(string(err))")
-        end
+    signal_connect(boton_5, "clicked") do _
+        ejecutar(X_5, Y_5, "regresion lineal (GLM) -- 5 puntos")
     end
 
-    signal_connect(boton_100, "clicked") do _
-        try
-            m     = ajustar_modelo(X_100, Y_100)
-            costo = imprimir_resultados(m, X_100, Y_100, "100 puntos")
-            w, b, r2_val = extraer_parametros(m)
-            mostrar_resultado(w, b, r2_val, costo, 100)
-            graficar(X_100, Y_100, m, "regresión lineal (GLM) — 100 puntos")
-        catch err
-            set_gtk_property!(label_resultado, :label, "error: $(string(err))")
-        end
-    end
-
-    signal_connect(boton_manual, "clicked") do _
-        try
-            x1, y1 = parsear_punto(entry_p1)
-            x2, y2 = parsear_punto(entry_p2)
-            x3, y3 = parsear_punto(entry_p3)
-            x_man = [x1, x2, x3]
-            y_man = [y1, y2, y3]
-
-            m     = ajustar_modelo(x_man, y_man)
-            costo = imprimir_resultados(m, x_man, y_man, "3 puntos manuales")
-            w, b, r2_val = extraer_parametros(m)
-            mostrar_resultado(w, b, r2_val, costo, 3)
-            graficar(x_man, y_man, m, "regresión lineal (GLM) — 3 puntos manuales")
-        catch err
-            set_gtk_property!(label_resultado, :label, "error al parsear puntos: $(string(err))")
-        end
-    end
-
-    # ============================================================
-    # mostrar ventana y entrar al loop de eventos
-    # ============================================================
     showall(ventana)
 
     if !isinteractive()
@@ -411,8 +247,4 @@ function lanzar_aplicacion()
     end
 end
 
-
-# ============================================================
-# punto de entrada
-# ============================================================
 lanzar_aplicacion()
