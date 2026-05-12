@@ -1,0 +1,22 @@
+a partir de estos cuatro códigos, dos con guinativa y dos con pluto, dos que son con MSE y con hiperparametros, y dos con librerías. 
+Quiero que me hagas las comparativas, además de que me hagas un pequeño artículo académico bien desarrollado justificando todo.
+Quiero que digas por qué se está utilizando esa librería de GLM además de este contexto:
+En el contexto de modelado de datos y Machine Learning utilizando Julia, la principal diferencia radica en que OLS (Ordinary Least Squares) es una técnica para entrenar (estimar) un modelo, mientras que MSE (Mean Squared Error) es una métrica para evaluar su rendimiento.
+parte del ecosistema MLJ; ofrece OLS, Ridge, Lasso, Elastic Net, regresión robusta (Huber), quantile regression, etc., con una API unificada.
+por favor, también quiero que las fuentes del artículo estén citadas en IEEE, además de que sean solo fuentes de páginas web en español.
+unicamente en español y con la información necesaria para hacer esta comparativa también poniendo por encima de todo el código.
+también que tenga el formato en IMRAD, es decir:
+Introducción: Responde al "¿por qué se hizo el estudio?". Plantea el problema, la pregunta de investigación y los antecedentes.
+Métodos: Responde al "¿cómo se hizo?". Describe el diseño del estudio, participantes, materiales y procedimientos, permitiendo la réplica.
+Resultados: Responde al "¿qué se encontró?". Presenta los datos crudos y hallazgos objetivos, a menudo usando tablas y figuras.
+Discusión: Responde al "¿qué significan los resultados?". 
+Interpreta los hallazgos, destaca la importancia, menciona limitaciones y sugiere futuras líneas de investigación
+
+solo páginas web en español para respaldar lo que estoy utilizando y también para ver cuales son mis sesgos, 
+no solo quiero que digas que es bueno el trabajo sino también en que se puede mejorar.
+este artículo es para un análisis, una forma de empezar a entender por qué es diferente, no necesariamente cual es mejor, pero si quien tiene sus puntos
+altos y bajos en ciertas situaciones.
+también por favor, haz analogías para que se pueda entender mejor el problema, así como explicar detalladamente que son los residuos, que son los
+predichos, cómo funciona el OLS a diferencia del MSE, cómo es que trabaja por dentro y sobre todo, que especifiques cuales son los puntos de entrada
+con los puntos de salida.
+
