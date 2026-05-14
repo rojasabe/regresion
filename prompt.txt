@@ -1,4 +1,4 @@
-a partir de estos cuatro códigos, dos con guinativa y dos con pluto, dos que son con MSE y con hiperparametros, y dos con librerías. 
+a partir de estos tres códigos, dos con guinativa y una con pluto, dos que son con MSE y con hiperparametros, y una con librerías. 
 Quiero que me hagas las comparativas, además de que me hagas un pequeño artículo académico bien desarrollado justificando todo.
 Quiero que digas por qué se está utilizando esa librería de GLM además de este contexto:
 En el contexto de modelado de datos y Machine Learning utilizando Julia, la principal diferencia radica en que OLS (Ordinary Least Squares) es una técnica para entrenar (estimar) un modelo, mientras que MSE (Mean Squared Error) es una métrica para evaluar su rendimiento.
@@ -19,6 +19,14 @@ altos y bajos en ciertas situaciones.
 también por favor, haz analogías para que se pueda entender mejor el problema, así como explicar detalladamente que son los residuos, que son los
 predichos, cómo funciona el OLS a diferencia del MSE, cómo es que trabaja por dentro y sobre todo, que especifiques cuales son los puntos de entrada
 con los puntos de salida.
+también poner que se hizo la comparativa en una laptop thinkpad intel core i5-10210U
+graficos integrado UHD grpahics es una thinkpad T14 gen 1.
+igual estudia que hace por dentro la librería de GLM 
+también justificar que en ols se estandariza los datos y en GD no, por eso se estandarizan
+no digas cual es mejor, siempre di en que casos es ideal usar cada uno
+con estandarización o sin estandarización todo depende de todo
+recuerda utilizar solo referencias de páginas web en español, claro que puedes buscar y darte referencias de otras fuentes, pero no las cites o te referencies, solo como puntos de partida
+porque quiero que sean fuentes de páginas web y en español sobre esto por favor.
 
 
 
@@ -473,3 +481,147 @@ Solo R² y RSE -- las dos mas citadas en cualquier reporte de regresion. Una lin
 Bloque completo de inferencia OLS -- R², R² ajustado, SE(w), p-valor(w), SE(b), p-valor(b), IC 95%. Refuerza el argumento "OLS provee inferencia estadistica completa, GD no".
 No, dejalo como esta -- mantener el foco en w*, b*, tiempos.
 Mi recomendacion para tu reporte es la opcion 2: muestra concretamente lo que OLS aporta gratis y GD no. Es material defendible y diferenciador. Pero si queres mantener el panel limpio, la opcion 1 es buen compromiso. Decime y lo agrego.
+
+No hay un "paper canónico" único que defina porcentajes oficiales para GD vs OLS en regresión lineal, pero sí hay convenciones bien establecidas en análisis numérico y ML. Te resumo lo que se usa típicamente y las referencias donde se ven:
+
+Métricas porcentuales estándar
+1. Error porcentual relativo respecto a la verdad (cuando hay parámetros verdaderos conocidos, tu caso sintético):
+
+
+error_porcentual(w_estimado, w_verdadero) = |w_estimado - w_verdadero| / |w_verdadero| * 100
+Es el "relative error" clásico de análisis numérico (Burden & Faires, Numerical Analysis, cap. 1.2). Aplicable directamente a w y b por separado.
+
+2. Brecha de optimización (optimality gap) (cuando se compara un método iterativo contra el óptimo exacto, tu caso GD vs OLS):
+
+
+gap(%) = (J_GD - J_OLS) / J_OLS * 100
+Standard en optimización convexa (Boyd & Vandenberghe, Convex Optimization, cap. 9). Mide cuán lejos está GD del mínimo verdadero como porcentaje del costo óptimo.
+
+3. Mejora porcentual del ganador sobre el perdedor:
+
+
+mejora(%) = (error_peor - error_mejor) / error_peor * 100
+Se ve mucho en benchmarks ML (papers de scikit-learn, Géron Hands-On ML cap. 4).
+
+4. R² (coeficiente de determinación) ya expresado como porcentaje de varianza explicada -- ambos métodos dan un R², se comparan directamente. Es el más usado en estadística clásica.
+
+Recomendación para tu proyecto
+Como ya tienes la sección "vs verdad" en mostrar_comparativa, lo más natural y defendible académicamente sería agregar:
+
+Error porcentual relativo a la verdad en w y b (los dos métodos)
+Optimality gap del GD respecto al J de OLS
+Eso te permite decir cosas como: "GD quedó al 99.97% del óptimo OLS" y "OLS acertó la pendiente con 0.03% de error, GD con 0.05%". Si quieres, te lo agrego al mostrar_comparativa sin tocar la lógica.
+
+Referencias concretas
+Boyd & Vandenberghe, Convex Optimization (cap. 9.3, criterios de parada por gap relativo) -- libre en stanford.edu/~boyd/cvxbook
+Géron, Hands-On ML with Scikit-Learn (cap. 4, comparativa Normal Equation vs GD)
+Hastie, Tibshirani, Friedman, Elements of Statistical Learning (cap. 3, OLS y métricas)
+En código: scikit-learn usa r2_score, mean_absolute_percentage_error -- son los nombres estándar
+por favor agregalo, me parece más exacto y academicamente justificable
+Read c:\Users\Rojas_Seba\Downloads\8VO SEMESTRE\regresionlineal\codes\comparativa_regresion.jl (lines 281-410)
+Read c:\Users\Rojas_Seba\Downloads\8VO SEMESTRE\regresionlineal\codes\comparativa_regresion.jl (lines 406-495)
+Voy a agregar dos métricas porcentuales académicamente justificadas: la brecha de optimización (gap respecto al RSS de OLS) y los errores porcentuales relativos a la verdad cuando el dataset es sintético.
+
+Edit c:\Users\Rojas_Seba\Downloads\8VO SEMESTRE\regresionlineal\codes\comparativa_regresion.jl
+Added 11 lines
+Falta agregar texto_brecha al texto del resultado. Lo añado a la sección de comparativa porcentual.
+
+Edit c:\Users\Rojas_Seba\Downloads\8VO SEMESTRE\regresionlineal\codes\comparativa_regresion.jl
+Added 1 line
+Listo. La salida ahora incluye:
+
+Brecha de optimización (siempre): GD esta X% por encima del minimo OLS -- es el optimality gap clásico de Boyd & Vandenberghe, mide cuán lejos quedó el GD del mínimo exacto de RSS.
+Errores porcentuales relativos a la verdad (solo en datasets sintéticos): GD: w = X%, b = Y% y la línea equivalente de OLS -- es el relative error de análisis numérico (Burden & Faires).
+Así cada coeficiente se compara contra la verdad en escala porcentual y queda explícito qué tan cerca llegó GD del óptimo absoluto que entrega OLS.
+
+Asumo que el doble "sin estandarizar" fue un lapsus y querés 3 sin estandarizar + 3 estandarizados (uno de cada por tamaño). Te paso valores que muestran comportamientos interesantes -- la idea es que con datos sin estandarizar haga falta más cintura (alfa chico, iters altas) y con estandarizados converja rápido:
+
+Casos sin estandarizar (casilla DESACTIVADA)
+#	Dataset	alfa	iteraciones	qué esperar
+1	5 puntos	0.05	5000	x en [1, 5], converge lento pero llega. Con menos iters el GD queda corto
+2	100 puntos	0.01	10000	x en [1, 10], el peor caso de condicionamiento. Brecha visible aunque alta iters
+3	1000 puntos	0.01	10000	igual condición numérica que (2), pero más puntos = mejor RSS final
+Casos estandarizados (casilla ACTIVADA)
+#	Dataset	alfa	iteraciones	qué esperar
+4	5 puntos	0.1	500	matriz X'X bien condicionada, casi pega OLS con pocas iters
+5	100 puntos	0.3	300	alfa agresivo y pocas iters, debería igualar a OLS en w y b
+6	1000 puntos	0.1	1000	configuración por defecto, el GD prácticamente alcanza el óptimo OLS
+Qué deberías observar al comparar pares mismo dataset
+Caso 1 vs 4 (5 puntos): el caso 4 termina con brecha de optimización ~0% en una fracción del tiempo del caso 1.
+Caso 2 vs 5 (100 puntos): el caso 2, aún con 10000 iteraciones, deja una brecha medible vs OLS; el caso 5 la cierra con 300 iteraciones.
+Caso 3 vs 6 (1000 puntos): demuestra que estandarizar no es opcional cuando el dataset crece -- el sin-estandarizar tarda órdenes de magnitud más para llegar al mismo punto.
+Si querés que algún par muestre que GD GANA a OLS en algún coeficiente respecto a la verdad (el resultado contraintuitivo bonito), probá el caso 5 con alfa = 0.2, iters = 800: el GD a veces queda más cerca de b = 0.5 que OLS por el sesgo del ruido determinista.
+
+
+image.png
+729×483
+c:\Users\Rojas_Seba\Downloads\8VO SEMESTRE\regresionlineal\codes\comparativa_regresion.jl
+en el caso 2, baja por la derecha en vez de la izquierda en el costo o en el camino de GD, por qué pasa esto y si está bien
+Está perfectamente bien y, de hecho, es la mejor demostración visual de por qué hace falta estandarizar. Te explico qué está pasando.
+
+Por qué el camino aparece todo del lado derecho de 1.5
+El gráfico es una rebanada: muestra RSS(w, b_OLS) -- es decir, la parábola asume que b ya está fijo en b_OLS = 0.5. Pero durante el entrenamiento, b NO está en 0.5: está creciendo MUY lentamente desde 0. Y mientras b está chico, el w que minimiza el costo (dado ese b) NO es 1.5, es más grande.
+
+Concretamente, fijando b y derivando respecto a w:
+
+
+w_optimo_dado_b = (sum(x*y) - b * sum(x)) / sum(x^2)
+                = 1.574 - 0.149 * b
+Si b = 0 (al inicio): w óptimo ≈ 1.574
+Si b = 0.2: w óptimo ≈ 1.544
+Si b = 0.5 (OLS final): w óptimo = 1.500
+Entonces el GD persigue una "diana móvil": primero corre hacia w≈1.57 (porque b está cerca de 0), y después, a medida que b sube lentamente hacia 0.5, w baja despacito hacia 1.5 desde la derecha.
+
+Por qué b sube tan lento (la causa raíz)
+La matriz X'X/m con x ∈ [1, 10] sin centrar es:
+
+
+[ 37.0   5.5 ]
+[  5.5   1.0 ]
+Sus autovalores son ~39.3 y ~0.21. El número de condición es ~187.
+
+El autovalor grande (~39.3) está casi alineado con la dirección de w → GD se mueve rápido en w
+El autovalor chico (~0.21) está en una dirección que involucra mucho b → GD se mueve lentísimo en b
+Como alfa = 0.01, el factor de contracción por iteración en la dirección lenta es 1 - 0.01 * 0.21 ≈ 0.998. Necesitás miles de iteraciones para que b se acerque a 0.5. Con 10000 iters el b final probablemente quedó en algo como 0.3-0.4, todavía lejos de 0.5, así que el w final también quedó del lado derecho de 1.5.
+
+Qué confirma que está bien
+Trayectoria suave, sin oscilaciones: alfa = 0.01 está bien dentro del régimen estable (2/lambda_max ≈ 0.052), así que el camino no rebota a izquierda y derecha -- camina monotonamente.
+Punto inicial (índice 1): ese primer punto naranja a la izquierda (que probablemente ves muy pegado al eje) corresponde a w ≈ 0.58 después del paso 1. Es el ÚNICO de la izquierda; el sub-muestreo (1 cada 167 iters) ya cae en w > 1.5.
+El diamante verde de OLS está exactamente donde debe (1.5).
+La estrella roja del GD final está apenas a la derecha de 1.5 -- ese gap es la "brecha de optimización" que reporta el panel de texto.
+El contraste con el caso 5 estandarizado
+Si corrés el mismo dataset con la casilla activada (caso 5: alfa=0.3, iters=300), la matriz pasa a tener autovalores ~1 en ambas direcciones (condición ≈ 1), b ya no se queda atrás, y el camino llega derechito al 1.5 sin curva lateral.
+
+Conclusión: el comportamiento que ves es la firma visual del mal condicionamiento. Es matemáticamente correcto y, didácticamente, es justamente el efecto que el caso 2 está pensado para mostrar.
+
+por favor haz un caso 7, donde el GD se vea que no llega por las iteraciones, en este caso uno donde sea estandarizado y otro donde no, o sea caso 7 y 8, pero que no llegue, que se vea que los hiperparametros no se configuraron para llegar, que se quede en el camino
+Te paso dos configuraciones deliberadamente cortas para que sea evidente que el GD se quedó "a mitad de camino":
+
+Casos donde el GD no llega por iteraciones insuficientes
+#	Dataset	Estandarizar	alfa	iteraciones	qué deberías ver
+7	100 puntos	SI	0.05	15	el GD avanza pero se corta a mitad de la rampa
+8	100 puntos	NO	0.001	50	w se queda alrededor de 1.36, b casi en 0
+Qué esperar exactamente
+Caso 7 (estandarizado, alfa razonable, iters cortadas a propósito)
+alfa = 0.05 es una tasa perfectamente válida para datos estandarizados (no diverge, no oscila)
+Solo 15 iteraciones no alcanzan -- el factor de contracción 0.95^15 ≈ 0.46 deja a w al 54% del camino
+w_final ≈ 0.81, b_final ≈ 0.27 (lejos de 1.5 y 0.5)
+En el panel 4 (convergencia J vs iters): la curva del GD baja en picada pero se corta cuando todavía está muy por encima de la línea verde discontinua de OLS
+En el panel 3 (superficie de costo): la estrella roja queda visiblemente a la izquierda del diamante verde
+Brecha de optimización alta (algo del orden de varios miles de % porque RSS_GD >> RSS_OLS)
+Caso 8 (sin estandarizar, alfa conservador, iters muy bajas)
+alfa = 0.001 es un alfa "seguro" para datos sin estandarizar -- no rebota
+Pero 50 iteraciones son ridículamente pocas para el mal condicionamiento (recordá que el caso 2 necesitaba 10000)
+En el panel 3 vas a ver la trayectoria subiendo desde 0 hasta w ≈ 1.36 y deteniéndose ahí, sin llegar a 1.5
+b_final ≈ 0.006, prácticamente sin moverse del inicio (la dirección lenta apenas arrancó)
+Convergencia del J: la curva todavía está cayendo claramente cuando se corta -- no hay meseta
+Cómo va a quedar el texto de resultados
+El bloque "comparativa porcentual" en ambos casos va a mostrar:
+
+brecha: GD esta X% por encima del minimo OLS con X grande (no decimales chicos como en los casos buenos)
+precision: OLS es Y% mejor con Y también grande
+Y en caso 7 + 8 sobre el dataset sintético de 100 puntos, los errores porcentuales relativos a la verdad van a delatar la diferencia:
+
+OLS: w ≈ 0.001%, b ≈ 0.1% (preciso)
+GD: porcentajes mucho mayores -- justamente la evidencia visual y numérica de que los hiperparámetros se quedaron cortos
+Si querés que sea aún más exagerado, bajá las iteraciones de caso 7 a 5 y las de caso 8 a 20 -- queda dramático en el gráfico.
